@@ -5,9 +5,9 @@ const int strobe = 9;
 const int clock = 7;
 const int data = 8;
 char display[8] = {0};
-const char segment[2] = {
-  0b01110110, // H
-  0b10000110, // I.
+const uint8_t segment[2] = {
+  0B01110110, // H
+  0B10000110 // I.
 };
 
 void sendCommand(uint8_t value) {
