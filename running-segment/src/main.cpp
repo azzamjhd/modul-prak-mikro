@@ -51,9 +51,10 @@ void setup() {
 
 void loop() {
   for (int i = 0; i < 8; i++) {
-    sendData(0x00 | (2*i), display[Incr % 8]);
+    sendData(0x00 | (2 * (i + (Incr % 8 ))), display[i]);
   }
   
   Incr++;
-  delay(100);
+  delay(400);
+  reset();
 }

@@ -57,20 +57,22 @@ void setup() {
 uint8_t i = 1;
 
 void loop() {
+  // set mode single address
   sendCommand(0x44);
+  // set led before to off incase led runs to the right
+  sendData(0x0f & (i-2), 0x00);
+  // set led after to off incase led runs to the left
+  sendData(0x0f & (i+2), 0x00);
+  // set olny odd adress to on
   if (i % 2 != 0) {
     sendData(0x0f & i, 0x01);
-    Serial.println("hidup");
   }
-
   uint8_t buttons = readButtons();
-
+  // if button 1 is pressed, led runs to the left
   if (buttons == 0x01) {
-    i--;
+    i -= 2;
   } else {
-    i++;
+    i += 2;
   }
-
   delay(100);
-  reset();
 }

@@ -40,14 +40,11 @@ uint8_t i = 0x01;
 
 void loop() {
   sendCommand(0x44); // sending command to set certain address
-  if (i % 2 == 0) {
-    sendData(0x0f & i, 0x00);
-    Serial.println("mati");
-  } else {
+  if (i % 2 != 0) {
     sendData(0x0f & i, 0x01);
     Serial.println("hidup");
   }
-  i++;
+  i += 2;
   delay(100);
   reset();
 }
