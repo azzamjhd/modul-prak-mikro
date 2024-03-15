@@ -71,10 +71,6 @@ void displaySegment(int numIncr, int numDecr) {
     } else {
       sendData(0x00 | (2*i), data7Segment[digits[i]]);}
   }
-
-  // for (int i = 0; i < 8; i++) {
-  //   sendData(0x00 | (2*i), data7Segment[digits[i]]);
-  // }
 }
 
 void reset() {
@@ -112,5 +108,5 @@ void loop() {
     Down = 9999;
   }
 
-  delay(500);
+  delay(100);
 }
