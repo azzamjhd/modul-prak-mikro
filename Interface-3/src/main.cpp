@@ -96,7 +96,7 @@ int Up = 0;
 int Down = 9999;
 
 void loop() {
-  displaySegment(Up, Down);
+  displaySegment(Down, Up);
   
   Up++;
   Down--;  
