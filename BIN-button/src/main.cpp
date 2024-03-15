@@ -82,12 +82,12 @@ void setup() {
 void loop() {
   currentButtons = readButtons();
   if (currentButtons != lastButtons) {
-    uint8_t sortedButtons = buttonSort(currentButtons);
+    // uint8_t sortedButtons = buttonSort(currentButtons);
     uint8_t digit[4] = {0};
-    digit[0] = sortedButtons / 1000;
-    digit[1] = (sortedButtons % 1000) / 100;
-    digit[2] = (sortedButtons % 100) / 10;
-    digit[3] = sortedButtons % 10;
+    digit[0] = currentButtons / 1000;
+    digit[1] = (currentButtons % 1000) / 100;
+    digit[2] = (currentButtons % 100) / 10;
+    digit[3] = currentButtons % 10;
     bool suppressZero = true;
     for (int i = 0; i < 4; i++) {
       for (int j = 0; j < i; j++) {
@@ -104,4 +104,5 @@ void loop() {
     }
   }
   lastButtons = currentButtons;
+  delay(100);
 }
