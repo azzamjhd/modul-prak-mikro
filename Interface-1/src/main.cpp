@@ -3,6 +3,7 @@
 const int strobe = 9;
 const int clock = 7;
 const int data = 8;
+uint8_t i = 0x01;
 
 void sendCommand(uint8_t value) {
   digitalWrite(strobe, LOW);
@@ -35,8 +36,6 @@ void setup() {
   reset();
   Serial.begin(9600);
 }
-
-uint8_t i = 0x01;
 
 void loop() {
   sendCommand(0x44); // sending command to set certain address
