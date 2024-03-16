@@ -108,5 +108,5 @@ void loop() {
     Down = 9999;
   }
 
-  delay(100);
+  delay(1);
 }
