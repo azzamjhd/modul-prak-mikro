@@ -3,7 +3,7 @@
 Tampilkan running LED pada board I/O dengan rotasi satu buah LED dengan arah ke kanan saat S1 tidak ditekan dan ke-kiri saat S1 ditekan.
 
 ## Penggunaan
-copy text [`src/main.cpp`](https://github.com/azzamjhd/modul-prak-mikro/blob/0762a84d8dca36791cf0b62773bdc8f7d36826d0/Interface-1/src/main.cpp) ke dalam folder `src/main.cpp` pada project PlatformIO
+copy text pada <a href="/Interface-2/src/main.cpp">src/main.cpp</a> ke dalam folder `src/main.cpp` pada project PlatformIO
 ## Penjelasan Kode
 #### Inisialisasi Pin GPIO
 ```cpp

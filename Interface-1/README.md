@@ -3,7 +3,7 @@
 >Tampilkan running LED pada board I/O dengan rotasi satu buah LED dari kiri ke-kanan dengan memodifikasi program sebelumnya.
 
 ## Penggunaan
-copy text [`src/main.cpp`](https://github.com/azzamjhd/modul-prak-mikro/blob/0762a84d8dca36791cf0b62773bdc8f7d36826d0/Interface-1/src/main.cpp) ke dalam folder `src/main.cpp` pada project PlatformIO
+copy text pada <a href="/Interface-1/src/main.cpp">src/main.cpp</a> ke dalam folder `src/main.cpp` pada project PlatformIO
 ## Penjelasan Kode
 #### Inisialisasi Pin GPIO
 ```cpp
@@ -65,7 +65,7 @@ void setup() {
 }
 ```
 `sendCommand(0x8f);` berfungsi untuk mengirimkan sebuah data bernilai `0x8f`, atau dalam bilangan biner `0b10001111` yang berarti dalam datasheet TM1638 yaitu,
-<br><image src="https://github.com/azzamjhd/modul-prak-mikro/blob/69ef185c262d7293858fe40e5f88ffe5d10a2927/assets/init.jpg" width="700">
+<br><image src="/assets/init.jpg" width="700">
 
 |1|0|0|0|1|1|1|1|
 |-|-|-|-|-|-|-|-|
