@@ -31,13 +31,13 @@ void sendData(uint8_t address, uint8_t value) {
   digitalWrite(strobe, HIGH);
 }
 
-void displaySegment(int numIncr, int numDecr) {
+void displaySegment(int leftDisplay, int numDecr) {
   int digits[8];
   // 4 segment left
-  digits[0] = numIncr / 1000;
-  digits[1] = (numIncr % 1000) / 100;
-  digits[2] = (numIncr % 100) / 10;
-  digits[3] = numIncr % 10;
+  digits[0] = leftDisplay / 1000;
+  digits[1] = (leftDisplay % 1000) / 100;
+  digits[2] = (leftDisplay % 100) / 10;
+  digits[3] = leftDisplay % 10;
   // 4 segment right
   digits[4] = numDecr / 1000;
   digits[5] = (numDecr % 1000) / 100;
