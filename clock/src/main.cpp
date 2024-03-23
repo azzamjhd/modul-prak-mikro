@@ -3,10 +3,10 @@
 const int strobe = 9;
 const int clock = 7;
 const int data = 8;
-int mili_counter = 0;
+long int counter = 0;
 int buttons = 0;
 
-const uint8_t data7Segment[21] = {
+const uint8_t data7Segment[22] = {
     0b00111111, // 0
     0b00000110, // 1
     0b01011011, // 2
@@ -29,29 +29,32 @@ const uint8_t data7Segment[21] = {
     0b11111111, // 8
     0b11101111, // 9
     // Blank space
-    0b00000000 // blank space
+    0b00000000, // blank space
+    0b10000000  // dot
 };
 
 uint8_t readButtons(void);
 void sendCommand(uint8_t value);
 void sendData(uint8_t address, uint8_t value);
-void displaySegment(int mili_counter);
+void displaySegment(int counter);
 void reset();
 
+/*
+ * Time = 1000 ms
+ * Prescaler = 256
+ * F_CPU = 16 MHz
+ * Ticks Count = 62500
+ */
 ISR(TIMER1_COMPA_vect) { // interrupt service routine
-  OCR1A += 20000;        // setting the next interrupt
-  if (mili_counter > 0) {
-    mili_counter--;
-  } else {
-    mili_counter = 0;
-  }
+  OCR1A += 62500;        // setting the next interrupt
+  counter += 100;        // incrementing the counter
 }
 
 void setup() {
   TCCR1A = 0;          // setting timer1 to normal mode
   TCCR1B = 0;          // setting timer1 to normal mode
-  TCCR1B |= B00000010; // setting prescaler to 8
-  OCR1A = 20000;       // setting the compare value
+  TCCR1B |= B00000100; // setting prescaler to 256
+  OCR1A = 62500;       // setting the compare value
   TIMSK1 |= B00000010; // enabling the compare interrupt
 
   pinMode(strobe, OUTPUT);
@@ -62,27 +65,33 @@ void setup() {
 }
 
 void loop() {
-  displaySegment(mili_counter);
+  displaySegment(counter);
 
   buttons = readButtons();
   switch (buttons) {
-  case 1: // menit++
-    mili_counter += 6000;
+  case 1: // jam++
+    counter += 3600;
     break;
-  case 2: // menit--
-    mili_counter -= 6000;
+  case 2: // jam--
+    counter -= 3600;
     break;
-  case 4: // detik++
-    mili_counter += 100;
+  case 4: // menit++
+    counter += 60;
     break;
   case 8: // detik--
-    mili_counter -= 100;
+    counter -= 60;
     break;
-  case 16: // start
-    TIMSK1 |= B00000010;
+  case 16: // detik++
+    counter += 1;
     break;
-  case 32: // stop
+  case 32: // detik--
+    counter -= 1;
+    break;
+  case 64: // stop
     TIMSK1 &= ~B00000010;
+    break;
+  case 128: // start
+    TIMSK1 |= B00000010;
     break;
   default:
     break;
@@ -92,23 +101,21 @@ void loop() {
 /*!
   @brief menampilkan menit pada bit ke 0 dan 1, detik pada bit ke 3 dan 4, dan
   milisecond pada bit ke 6 dan 7
-  @param menit 2 digit menit yang akan ditampilkan
-  @param detik 2 digit detik yang akan ditampilkan
-  @param mili 2 digit milisecond yang akan ditampilkan
+  @param counter angaka yang akan ditampilkan
 */
-void displaySegment(int mili_counter) {
-  int mili_display = mili_counter % 100;
-  int detik_display = (mili_counter / 100) % 60;
-  int menit_display = (mili_counter / 6000) % 60;
+void displaySegment(int counter) {
+  int detik = counter % 60;
+  int menit = (counter / 60) % 60;
+  int jam = (counter / 3600) % 24;
   int digits[8];
-  digits[0] = menit_display / 10;
-  digits[1] = (menit_display % 10) / 1;
+  digits[0] = jam / 10;
+  digits[1] = (jam % 10) / 1;
   digits[2] = 21; // Show blank space
-  digits[3] = detik_display / 10;
-  digits[4] = (detik_display % 10) / 1;
+  digits[3] = menit / 10;
+  digits[4] = (menit % 10) / 1;
   digits[5] = 21; // Show blank space
-  digits[6] = (mili_display % 100) / 10;
-  digits[7] = (mili_display % 10) / 1;
+  digits[6] = (detik % 100) / 10;
+  digits[7] = (detik % 10) / 1;
 
   for (int i = 0; i < 8; i++) {
     sendData(0x00 | (2 * i), data7Segment[digits[i]]);

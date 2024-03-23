@@ -9,7 +9,9 @@ Kumpulan kode-kode dari tugas pada modul yang telah diberikan dalam format Platf
   - [Tugas 2](/Interface-2#tugas-2)
   - [Tugas 3](/Interface-3#tugas-3)
 - **Timer dan Counter**
+  - [Jam](/clock#jam)
   - [Stop Watch](/stop-watch#stop-watch)
+  - [Timer](/timer#timer)
   
 ---
 ## Fun Projects
