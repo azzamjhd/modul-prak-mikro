@@ -47,7 +47,7 @@ void reset();
  */
 ISR(TIMER1_COMPA_vect) { // interrupt service routine
   OCR1A += 62500;        // setting the next interrupt
-  counter += 100;        // incrementing the counter
+  counter ++;        // incrementing the counter
 }
 
 void setup() {
@@ -107,7 +107,8 @@ void displaySegment(int counter) {
   int detik = counter % 60;
   int menit = (counter / 60) % 60;
   int jam = (counter / 3600) % 24;
-  int digits[8];
+  static int digits[8];
+  static int prev_digits[8];
   digits[0] = jam / 10;
   digits[1] = (jam % 10) / 1;
   digits[2] = 21; // Show blank space
@@ -118,7 +119,10 @@ void displaySegment(int counter) {
   digits[7] = (detik % 10) / 1;
 
   for (int i = 0; i < 8; i++) {
-    sendData(0x00 | (2 * i), data7Segment[digits[i]]);
+    if (digits[i] != prev_digits[i]) {
+      sendData(0x00 | (2 * i), data7Segment[digits[i]]);
+    }
+    prev_digits[i] = digits[i];
   }
 }
 
@@ -152,7 +156,7 @@ void sendData(uint8_t address, uint8_t value) {
   yang ditekan
 */
 uint8_t readButtons(void) {
-  uint8_t buttons = 0;
+  static uint8_t buttons = 0, prev_buttons = 0;
   digitalWrite(strobe, LOW);
   shiftOut(data, clock, LSBFIRST, 0x42);
   pinMode(data, INPUT);
@@ -162,7 +166,12 @@ uint8_t readButtons(void) {
   }
   pinMode(data, OUTPUT);
   digitalWrite(strobe, HIGH);
-  return buttons;
+  if (buttons != prev_buttons) {
+    return buttons;
+  } else {
+    return 0;
+  }
+  prev_buttons = buttons;
 }
 
 /*!

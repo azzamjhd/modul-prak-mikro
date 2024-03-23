@@ -1,14 +1,23 @@
 #include <Arduino.h>
 
+/*!
+  @name Timer
+  @brief Aplikasi timer sederhana dengan 7-segment display dan tombol
+  @details Aplikasi ini menggunakan TM1638 sebagai driver 7-segment display dan
+  tombol. Aplikasi ini memiliki beberapa fitur:
+  - Menit++
+  - Menit--
+  - Detik++
+  - Detik--
+  - Start
+  - Stop
+*/
+
 const int strobe = 9;
 const int clock = 7;
 const int data = 8;
-int mili_counter = 0, mili_display = 0, detik_display = 0, menit_display = 0;
-int buttons = 0;
-bool timerRunning = true;
-
-const int MAX_STORED_TIME = 5;
-int storedTimes[MAX_STORED_TIME][4] = {{0}};
+int mili_counter = 0;
+uint8_t buttons = 0;
 
 const uint8_t data7Segment[21] = {
     0b00111111, // 0
@@ -37,22 +46,23 @@ const uint8_t data7Segment[21] = {
 };
 
 uint8_t readButtons(void);
-void storeTime();
-void displayStoredTime(int index);
 void sendCommand(uint8_t value);
 void sendData(uint8_t address, uint8_t value);
-void displaySegment(int menit, int detik, int mili);
+void displaySegment(int mili_counter);
 void reset();
-void startStopTimer();
 
 ISR(TIMER1_COMPA_vect) { // interrupt service routine
   OCR1A += 20000;        // setting the next interrupt
-  mili_counter++;        // incrementing the mili_counter
+  if (mili_counter > 0) {
+    mili_counter--;
+  } else {
+    mili_counter = 0;
+  }
 }
 
 void setup() {
-  TCCR1A = 0;          // setting timer1 to normal mode
-  TCCR1B = 0;          // setting timer1 to normal mode
+  TCCR1A = 0;
+  TCCR1B = 0;
   TCCR1B |= B00000010; // setting prescaler to 8
   OCR1A = 20000;       // setting the compare value
   TIMSK1 |= B00000010; // enabling the compare interrupt
@@ -65,127 +75,57 @@ void setup() {
 }
 
 void loop() {
-  displaySegment(menit_display, detik_display, mili_display);
-  mili_display = mili_counter % 100;
-  detik_display = (mili_counter / 100) % 60;
-  menit_display = (mili_counter / 6000) % 60;
-
+  displaySegment(mili_counter);
   buttons = readButtons();
   switch (buttons) {
-  case 1: // Reset
-    mili_counter = 0;
-    reset();
+  case 1: // menit++
+    mili_counter += 6000;
     break;
-  case 2: // Step : take the current time and store it
-    storeTime();
+  case 2: // menit--
+    mili_counter -= 6000;
     break;
-  case 4: // Start and Stop
-    startStopTimer();
+  case 4: // detik++
+    mili_counter += 100;
     break;
-  case 8: // step 1: show the first stored time
-    displayStoredTime(0);
+  case 8: // detik--
+    mili_counter -= 100;
     break;
-  case 16: // step 2: show the second stored time
-    displayStoredTime(1);
-    break;
-  case 32: // step 3: show the third stored time
-    displayStoredTime(2);
-    break;
-  case 64: // step 4: show the fourth stored time
-    displayStoredTime(3);
-    break;
-  case 128: // step 5: show the fifth stored time
-    displayStoredTime(4);
-    break;
-  }
-}
-
-/*!
-  @brief start atau stop timer secara flipflop
-*/
-void startStopTimer() {
-  timerRunning = !timerRunning;
-  if (timerRunning) {
+  case 16: // start
     TIMSK1 |= B00000010;
-  } else {
+    break;
+  case 32: // stop
     TIMSK1 &= ~B00000010;
+    break;
+  default:
+    break;
   }
 }
 
 /*!
   @brief menampilkan menit pada bit ke 0 dan 1, detik pada bit ke 3 dan 4, dan
   milisecond pada bit ke 6 dan 7
-  @param menit 2 digit menit yang akan ditampilkan
-  @param detik 2 digit detik yang akan ditampilkan
-  @param mili 2 digit milisecond yang akan ditampilkan
+  @param mili_counter nilai yang akan ditampilkan
 */
-void displaySegment(int menit, int detik, int mili) {
-  int digits[8];
-  digits[0] = menit / 10;
-  digits[1] = (menit % 10) / 1;
-  digits[2] = 11; // Show blank space
-  digits[3] = detik / 10;
-  digits[4] = (detik % 10) / 1;
-  digits[5] = 11; // Show blank space
-  digits[6] = (mili % 100) / 10;
-  digits[7] = (mili % 10) / 1;
+void displaySegment(int mili_counter) {
+  int mili_display = mili_counter % 100;
+  int detik_display = (mili_counter / 100) % 60;
+  int menit_display = (mili_counter / 6000) % 60;
+  static int digits[8];
+  static int prev_digits[8];
+  digits[0] = menit_display / 10;
+  digits[1] = (menit_display % 10) / 1;
+  digits[2] = 21; // Show blank space
+  digits[3] = detik_display / 10;
+  digits[4] = (detik_display % 10) / 1;
+  digits[5] = 21; // Show blank space
+  digits[6] = (mili_display % 100) / 10;
+  digits[7] = (mili_display % 10) / 1;
 
   for (int i = 0; i < 8; i++) {
-    sendData(0x00 | (2 * i), data7Segment[digits[i]]);
-  }
-}
-
-/*!
-  @brief menyimpan waktu yang telah dijalankan dengan kapasitas 5 kali step.
-  step terbaru berada diawal.
-*/
-void storeTime() {
-  for (int i = MAX_STORED_TIME - 1; i > 0; i--) {
-    storedTimes[i][0] = storedTimes[i - 1][0];
-    storedTimes[i][1] = storedTimes[i - 1][1];
-    storedTimes[i][2] = storedTimes[i - 1][2];
-    storedTimes[i][3] = storedTimes[i - 1][3];
-  }
-  storedTimes[0][0] = menit_display;
-  storedTimes[0][1] = detik_display;
-  storedTimes[0][2] = mili_display;
-  storedTimes[0][3] = mili_counter;
-}
-
-/*!
-  @brief menampilkan waktu yang telah disimpan
-  @param index index waktu yang akan ditampilkan.
-  ( 0 - 4 )
-*/
-void displayStoredTime(int index) {
-  startStopTimer();
-  reset();
-  switch (index) {
-  case 0:
-    sendData(7, 1);
-    break;
-  case 1:
-    sendData(9, 1);
-    break;
-  case 2:
-    sendData(11, 1);
-    break;
-  case 3:
-    sendData(13, 1);
-    break;
-  case 4:
-    sendData(15, 1);
-    break;
-  default:
-    break;
-  }
-  if (index >= 0 && index < MAX_STORED_TIME) {
-    menit_display = storedTimes[index][0];
-    detik_display = storedTimes[index][1];
-    mili_display = storedTimes[index][2];
-    mili_counter = storedTimes[index][3];
-  } else {
-    displaySegment(0, 0, 0);
+    if (digits[i] != prev_digits[i]) {
+      sendData(0x00 | (2 * i), data7Segment[digits[i]]);
+    }
+    prev_digits[i] = digits[i];
   }
 }
 
@@ -206,7 +146,7 @@ void sendCommand(uint8_t value) {
   @param value data yang akan dikirim
 */
 void sendData(uint8_t address, uint8_t value) {
-  sendCommand(0x44); // sending command to set certain address
+  sendCommand(0x44);
   digitalWrite(strobe, LOW);
   shiftOut(data, clock, LSBFIRST, 0xc0 | address);
   shiftOut(data, clock, LSBFIRST, value);
@@ -219,7 +159,8 @@ void sendData(uint8_t address, uint8_t value) {
   yang ditekan
 */
 uint8_t readButtons(void) {
-  uint8_t buttons = 0;
+  static uint8_t buttons = 0;
+  static uint8_t prev_buttons = 0;
   digitalWrite(strobe, LOW);
   shiftOut(data, clock, LSBFIRST, 0x42);
   pinMode(data, INPUT);
@@ -229,14 +170,20 @@ uint8_t readButtons(void) {
   }
   pinMode(data, OUTPUT);
   digitalWrite(strobe, HIGH);
-  return buttons;
+  if (buttons != prev_buttons && buttons != 0) {
+    prev_buttons = buttons;
+    return buttons;
+  } else {
+    return 0;
+  }
+  prev_buttons = buttons;
 }
 
 /*!
   @brief mereset seluruh alamat, baik itu led ataupun 7-segment
 */
 void reset() {
-  sendCommand(0x40); // sending command to set consecutive addresses to 0
+  sendCommand(0x40);
   digitalWrite(strobe, LOW);
   shiftOut(data, clock, LSBFIRST, 0xc0);
   for (uint8_t i = 0; i < 16; i++) {
