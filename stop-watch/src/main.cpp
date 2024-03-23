@@ -1,16 +1,19 @@
 #include <Arduino.h>
 
-const int strobe = 9;
-const int clock = 7;
-const int data = 8;
-int milisecond = 0, second = 0, menit = 0;
-int buttons = 0;
+const int strobe  = 9;
+const int clock   = 7;
+const int data    = 8;
+int mili_counter  = 0, 
+    mili_display  = 0, 
+    detik_display = 0, 
+    menit_display = 0;
+int buttons       = 0;
 bool timerRunning = true;
 
 const int MAX_STORED_TIME = 5;
-int storedTimes[MAX_STORED_TIME][3] = { 0 };
+int storedTimes[MAX_STORED_TIME][4] = {0};
 
-const char data7Segment[11] = {
+const uint8_t data7Segment[21] = {
   0b00111111, // 0
   0b00000110, // 1
   0b01011011, // 2
@@ -21,9 +24,20 @@ const char data7Segment[11] = {
   0b00000111, // 7
   0b01111111, // 8
   0b01101111, // 9
-  0b00000000, // blank space
+  // with dot
+  0b10111111, // 0
+  0b10000110, // 1
+  0b11011011, // 2
+  0b11001111, // 3
+  0b11100110, // 4
+  0b11101101, // 5
+  0b11111101, // 6
+  0b10000111, // 7
+  0b11111111, // 8
+  0b11101111, // 9
+  // Blank space
+  0b00000000 // blank space
 };
-
 
 uint8_t readButtons(void); 
 void storeTime();
@@ -34,11 +48,10 @@ void displaySegment(int menit, int detik, int mili);
 void reset();
 void startStopTimer();
 
-
 ISR (TIMER1_COMPA_vect) 
 {   // interrupt service routine
   OCR1A += 20000;           // setting the next interrupt
-  milisecond++;             // incrementing the milisecond
+  mili_counter++;             // incrementing the mili_counter
 }
 
 void setup() {
@@ -53,28 +66,20 @@ void setup() {
   pinMode(data, OUTPUT);
   sendCommand(0x8f);   // sending init command to control the display
   reset();
-  Serial.begin(9600);
 }
 
 void loop() 
 {
-  displaySegment(menit, second, milisecond);
-  second = milisecond / 100;
-  menit = milisecond / 6000;
-  if (second > 60)
-  {
-    second = 0;
-  }
-  if (menit > 60) 
-  {
-    menit = 0;
-  }
-
+  displaySegment(menit_display, detik_display, mili_display);
+  mili_display = mili_counter % 100;
+  detik_display = (mili_counter / 100) % 60;
+  menit_display = (mili_counter / 6000) % 60;
+  
   buttons = readButtons();
   switch (buttons) 
   {
     case 1: // Reset
-      milisecond = 0;
+      mili_counter = 0;
       reset();
       break;
     case 2: // Step : take the current time and store it 
@@ -117,25 +122,10 @@ void startStopTimer()
 }
 
 /*!
-  @brief mereset seluruh alamat, baik itu led ataupun 7-segment
-*/
-void reset() 
-{
-  sendCommand(0x40); // sending command to set consecutive addresses to 0
-  digitalWrite(strobe, LOW);
-  shiftOut(data, clock, LSBFIRST, 0xc0);
-  for (uint8_t i = 0; i < 16; i++) 
-  {
-    shiftOut(data, clock, LSBFIRST, 0x00);
-  }
-  digitalWrite(strobe, HIGH);
-}
-
-/*!
   @brief menampilkan menit pada bit ke 0 dan 1, detik pada bit ke 3 dan 4, dan milisecond pada bit ke 6 dan 7
-  @param menit menit yang akan ditampilkan
-  @param detik detik yang akan ditampilkan
-  @param mili milisecond yang akan ditampilkan
+  @param menit 2 digit menit yang akan ditampilkan
+  @param detik 2 digit detik yang akan ditampilkan
+  @param mili 2 digit milisecond yang akan ditampilkan
 */
 void displaySegment(int menit, int detik, int mili) 
 {
@@ -156,27 +146,8 @@ void displaySegment(int menit, int detik, int mili)
 }
 
 /*!
-  @brief membaca tombol yang ditekan
-  @return tombol yang ditekan
-*/
-uint8_t readButtons(void) 
-{
-  uint8_t buttons = 0;
-  digitalWrite(strobe, LOW);
-  shiftOut(data, clock, LSBFIRST, 0x42);
-  pinMode(data, INPUT);
-  for (uint8_t i = 0; i < 4; i++) 
-  {
-    uint8_t v = shiftIn(data, clock, LSBFIRST) << i;
-    buttons |= v;
-  }
-  pinMode(data, OUTPUT);
-  digitalWrite(strobe, HIGH);
-  return buttons;
-}
-
-/*!
-  @brief menyimpan waktu yang telah dijalankan sebanyak 5 kali, terbaru selalu diawal.
+  @brief menyimpan waktu yang telah dijalankan dengan kapasitas 5 kali step.
+  step terbaru berada diawal.
 */
 void storeTime() 
 {
@@ -185,15 +156,18 @@ void storeTime()
     storedTimes[i][0] = storedTimes[i - 1][0];
     storedTimes[i][1] = storedTimes[i - 1][1];
     storedTimes[i][2] = storedTimes[i - 1][2];
+    storedTimes[i][3] = storedTimes[i - 1][3];
   }
-  storedTimes[0][0] = menit;
-  storedTimes[0][1] = second;
-  storedTimes[0][2] = milisecond;
+  storedTimes[0][0] = menit_display;
+  storedTimes[0][1] = detik_display;
+  storedTimes[0][2] = mili_display;
+  storedTimes[0][3] = mili_counter;
 }
 
 /*!
   @brief menampilkan waktu yang telah disimpan
-  @param index index waktu yang akan ditampilkan
+  @param index index waktu yang akan ditampilkan.
+  ( 0 - 4 )
 */
 void displayStoredTime(int index)
 {
@@ -221,8 +195,10 @@ void displayStoredTime(int index)
   }
   if (index >= 0 && index < MAX_STORED_TIME) 
   {
-    displaySegment(storedTimes[index][0], storedTimes[index][1], storedTimes[index][2]);
-    milisecond = storedTimes[index][2];
+    menit_display = storedTimes[index][0];
+    detik_display = storedTimes[index][1];
+    mili_display = storedTimes[index][2];
+    mili_counter = storedTimes[index][3];
   } else 
   {
     displaySegment(0, 0, 0);
@@ -242,7 +218,7 @@ void sendCommand(uint8_t value)
 
 /*!
   @brief mengirimkan data ke TM1638
-  @param address alamat yang akan dikirim
+  @param address alamat yang akan dikirim. 0x00 untuk alamat 0, 0x01 untuk alamat 1, dst
   @param value data yang akan dikirim
 */
 void sendData(uint8_t address, uint8_t value) 
@@ -251,5 +227,40 @@ void sendData(uint8_t address, uint8_t value)
   digitalWrite(strobe, LOW);
   shiftOut(data, clock, LSBFIRST, 0xc0 | address);
   shiftOut(data, clock, LSBFIRST, value);
+  digitalWrite(strobe, HIGH);
+}
+
+/*!
+  @brief membaca tombol yang ditekan
+  @return tombol yang ditekan. 1 byte data, setiap bit merepresentasikan tombol yang ditekan
+*/
+uint8_t readButtons(void) 
+{
+  uint8_t buttons = 0;
+  digitalWrite(strobe, LOW);
+  shiftOut(data, clock, LSBFIRST, 0x42);
+  pinMode(data, INPUT);
+  for (uint8_t i = 0; i < 4; i++) 
+  {
+    uint8_t v = shiftIn(data, clock, LSBFIRST) << i;
+    buttons |= v;
+  }
+  pinMode(data, OUTPUT);
+  digitalWrite(strobe, HIGH);
+  return buttons;
+}
+
+/*!
+  @brief mereset seluruh alamat, baik itu led ataupun 7-segment
+*/
+void reset() 
+{
+  sendCommand(0x40); // sending command to set consecutive addresses to 0
+  digitalWrite(strobe, LOW);
+  shiftOut(data, clock, LSBFIRST, 0xc0);
+  for (uint8_t i = 0; i < 16; i++) 
+  {
+    shiftOut(data, clock, LSBFIRST, 0x00);
+  }
   digitalWrite(strobe, HIGH);
 }
