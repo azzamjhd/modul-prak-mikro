@@ -4,7 +4,7 @@ const int strobe = 9;
 const int clock = 7;
 const int data = 8;
 unsigned long int counter = 0;
-int buttons = 0;
+int buttons = 0, prev_buttons = 0;
 int current_time = 0, prev_time = 0;
 
 const uint8_t data7Segment[22] = {
@@ -68,8 +68,8 @@ void setup() {
 void loop() {
   displaySegment(counter);
   current_time = millis();
-  if (current_time - prev_time > 500) {
-    buttons = readButtons();
+  buttons = readButtons();
+  if (current_time - prev_time > 100 && prev_buttons != buttons) {
     switch (buttons) {
     case 1: // jam++
       counter += 3600;
@@ -99,6 +99,7 @@ void loop() {
       break;
     }
   prev_time = current_time;
+  prev_buttons = buttons;
   }
 }
 
@@ -112,7 +113,6 @@ void displaySegment(int counter) {
   int menit = (counter / 60) % 60;
   int jam = (counter / 3600) % 24;
   static int digits[8];
-  static int prev_digits[8];
   digits[0] = jam / 10;
   digits[1] = (jam % 10) / 1;
   digits[2] = 21; // Show blank space
@@ -123,10 +123,7 @@ void displaySegment(int counter) {
   digits[7] = (detik % 10) / 1;
 
   for (int i = 0; i < 8; i++) {
-    if (digits[i] != prev_digits[i]) {
-      sendData(0x00 | (2 * i), data7Segment[digits[i]]);
-    }
-    prev_digits[i] = digits[i];
+    sendData(0x00 | (2 * i), data7Segment[digits[i]]);
   }
 }
 
@@ -160,7 +157,7 @@ void sendData(uint8_t address, uint8_t value) {
   yang ditekan
 */
 uint8_t readButtons(void) {
-  uint8_t buttons = 0, prev_buttons = 0;
+  uint8_t buttons = 0;
   digitalWrite(strobe, LOW);
   shiftOut(data, clock, LSBFIRST, 0x42);
   pinMode(data, INPUT);
@@ -170,12 +167,7 @@ uint8_t readButtons(void) {
   }
   pinMode(data, OUTPUT);
   digitalWrite(strobe, HIGH);
-  if (buttons != prev_buttons) {
-    return buttons;
-  } else {
-    return 0;
-  }
-  prev_buttons = buttons;
+  return buttons;
 }
 
 /*!
