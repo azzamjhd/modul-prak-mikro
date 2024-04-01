@@ -17,7 +17,7 @@ const int strobe = 9;
 const int clock = 7;
 const int data = 8;
 int mili_counter = 0;
-uint8_t buttons = 0;
+uint8_t buttons = 0, prev_buttons = 0;
 
 const uint8_t data7Segment[21] = {
     0b00111111, // 0
@@ -55,8 +55,6 @@ ISR(TIMER1_COMPA_vect) { // interrupt service routine
   OCR1A += 20000;        // setting the next interrupt
   if (mili_counter > 0) {
     mili_counter--;
-  } else {
-    mili_counter = 0;
   }
 }
 
@@ -65,7 +63,7 @@ void setup() {
   TCCR1B = 0;
   TCCR1B |= B00000010; // setting prescaler to 8
   OCR1A = 20000;       // setting the compare value
-  TIMSK1 |= B00000010; // enabling the compare interrupt
+  TIMSK1 &= ~B00000010;
 
   pinMode(strobe, OUTPUT);
   pinMode(clock, OUTPUT);
@@ -77,27 +75,30 @@ void setup() {
 void loop() {
   displaySegment(mili_counter);
   buttons = readButtons();
-  switch (buttons) {
-  case 1: // menit++
-    mili_counter += 6000;
-    break;
-  case 2: // menit--
-    mili_counter -= 6000;
-    break;
-  case 4: // detik++
-    mili_counter += 100;
-    break;
-  case 8: // detik--
-    mili_counter -= 100;
-    break;
-  case 16: // start
-    TIMSK1 |= B00000010;
-    break;
-  case 32: // stop
-    TIMSK1 &= ~B00000010;
-    break;
-  default:
-    break;
+  if (buttons != prev_buttons) {
+    switch (buttons) {
+    case 1: // menit++
+      mili_counter += 6000;
+      break;
+    case 2: // menit--
+      mili_counter -= 6000;
+      break;
+    case 4: // detik++
+      mili_counter += 100;
+      break;
+    case 8: // detik--
+      mili_counter -= 100;
+      break;
+    case 16: // start
+      TIMSK1 |= B00000010;
+      break;
+    case 32: // stop
+      TIMSK1 &= ~B00000010;
+      break;
+    default:
+      break;
+    }
+    prev_buttons = buttons;
   }
 }
 
@@ -111,7 +112,6 @@ void displaySegment(int mili_counter) {
   int detik_display = (mili_counter / 100) % 60;
   int menit_display = (mili_counter / 6000) % 60;
   static int digits[8];
-  static int prev_digits[8];
   digits[0] = menit_display / 10;
   digits[1] = (menit_display % 10) / 1;
   digits[2] = 21; // Show blank space
@@ -122,10 +122,7 @@ void displaySegment(int mili_counter) {
   digits[7] = (mili_display % 10) / 1;
 
   for (int i = 0; i < 8; i++) {
-    if (digits[i] != prev_digits[i]) {
-      sendData(0x00 | (2 * i), data7Segment[digits[i]]);
-    }
-    prev_digits[i] = digits[i];
+    sendData(0x00 | (2 * i), data7Segment[digits[i]]);
   }
 }
 
@@ -159,8 +156,7 @@ void sendData(uint8_t address, uint8_t value) {
   yang ditekan
 */
 uint8_t readButtons(void) {
-  static uint8_t buttons = 0;
-  static uint8_t prev_buttons = 0;
+  uint8_t buttons = 0;
   digitalWrite(strobe, LOW);
   shiftOut(data, clock, LSBFIRST, 0x42);
   pinMode(data, INPUT);
@@ -170,13 +166,7 @@ uint8_t readButtons(void) {
   }
   pinMode(data, OUTPUT);
   digitalWrite(strobe, HIGH);
-  if (buttons != prev_buttons && buttons != 0) {
-    prev_buttons = buttons;
-    return buttons;
-  } else {
-    return 0;
-  }
-  prev_buttons = buttons;
+  return buttons;
 }
 
 /*!

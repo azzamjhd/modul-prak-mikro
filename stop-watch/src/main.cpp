@@ -15,7 +15,7 @@
 const int strobe = 9;
 const int clock = 7;
 const int data = 8;
-int mili_counter = 0, prev_mili_counter = 0;
+unsigned int mili_counter = 0, prev_mili_counter = 0;
 int buttons = 0, prev_buttons = 0;
 bool timerRunning = true;
 int currentTime = 0, prevTime = 0;

@@ -3,7 +3,7 @@
 const int strobe = 9;
 const int clock = 7;
 const int data = 8;
-long int counter = 0;
+unsigned long int counter = 0;
 int buttons = 0;
 int current_time = 0, prev_time = 0;
 
