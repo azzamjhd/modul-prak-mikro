@@ -16,7 +16,7 @@ const int strobe = 9;
 const int clock = 7;
 const int data = 8;
 int mili_counter = 0, prev_mili_counter = 0;
-int buttons = 0;
+int buttons = 0, prev_buttons = 0;
 bool timerRunning = true;
 int currentTime = 0, prevTime = 0;
 
@@ -83,7 +83,7 @@ void loop() {
   buttons = readButtons();
   Serial.println(buttons);
   currentTime = millis();
-  if (currentTime - prevTime > 400) {
+  if (currentTime - prevTime > 100 && buttons != prev_buttons) {
     switch (buttons) {
     case 1: // Reset
       mili_counter = 0;
@@ -112,6 +112,7 @@ void loop() {
       break;
     }
   prevTime = currentTime;
+  prev_buttons = buttons;
   }
 }
 
@@ -129,7 +130,6 @@ void displaySegment(int value) {
   int detik = (value / 100) % 60;
   int menit = (value / 6000) % 60;
   static int digits[8];
-  static int prev_digits[8];
   digits[0] = menit / 10;
   digits[1] =(menit % 10) + 10; // with dot
   digits[2] = 21;
