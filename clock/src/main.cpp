@@ -5,6 +5,7 @@ const int clock = 7;
 const int data = 8;
 long int counter = 0;
 int buttons = 0;
+int current_time = 0, prev_time = 0;
 
 const uint8_t data7Segment[22] = {
     0b00111111, // 0
@@ -66,35 +67,38 @@ void setup() {
 
 void loop() {
   displaySegment(counter);
-
-  buttons = readButtons();
-  switch (buttons) {
-  case 1: // jam++
-    counter += 3600;
-    break;
-  case 2: // jam--
-    counter -= 3600;
-    break;
-  case 4: // menit++
-    counter += 60;
-    break;
-  case 8: // detik--
-    counter -= 60;
-    break;
-  case 16: // detik++
-    counter += 1;
-    break;
-  case 32: // detik--
-    counter -= 1;
-    break;
-  case 64: // stop
-    TIMSK1 &= ~B00000010;
-    break;
-  case 128: // start
-    TIMSK1 |= B00000010;
-    break;
-  default:
-    break;
+  current_time = millis();
+  if (current_time - prev_time > 500) {
+    buttons = readButtons();
+    switch (buttons) {
+    case 1: // jam++
+      counter += 3600;
+      break;
+    case 2: // jam--
+      counter -= 3600;
+      break;
+    case 4: // menit++
+      counter += 60;
+      break;
+    case 8: // detik--
+      counter -= 60;
+      break;
+    case 16: // detik++
+      counter += 1;
+      break;
+    case 32: // detik--
+      counter -= 1;
+      break;
+    case 64: // stop
+      TIMSK1 &= ~B00000010;
+      break;
+    case 128: // start
+      TIMSK1 |= B00000010;
+      break;
+    default:
+      break;
+    }
+  prev_time = current_time;
   }
 }
 
@@ -156,7 +160,7 @@ void sendData(uint8_t address, uint8_t value) {
   yang ditekan
 */
 uint8_t readButtons(void) {
-  static uint8_t buttons = 0, prev_buttons = 0;
+  uint8_t buttons = 0, prev_buttons = 0;
   digitalWrite(strobe, LOW);
   shiftOut(data, clock, LSBFIRST, 0x42);
   pinMode(data, INPUT);

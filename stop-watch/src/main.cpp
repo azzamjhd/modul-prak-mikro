@@ -18,6 +18,7 @@ const int data = 8;
 int mili_counter = 0, prev_mili_counter = 0;
 int buttons = 0;
 bool timerRunning = true;
+int currentTime = 0, prevTime = 0;
 
 const int MAX_STORED_TIME = 5;
 int storedTimes[MAX_STORED_TIME] = {0};
@@ -73,38 +74,44 @@ void setup() {
   pinMode(clock, OUTPUT);
   pinMode(data, OUTPUT);
   sendCommand(0x8f); // sending init command to control the display
+  Serial.begin(9600);
   reset();
 }
 
 void loop() {
   displaySegment(mili_counter);
   buttons = readButtons();
-  switch (buttons) {
-  case 1: // Reset
-    mili_counter = 0;
-    reset();
-    break;
-  case 2: // Step : take the current time and store it
-    storeTime();
-    break;
-  case 4: // Start and Stop
-    startStopTimer();
-    break;
-  case 8: // step 1: show the first stored time
-    displayStoredTime(0);
-    break;
-  case 16: // step 2: show the second stored time
-    displayStoredTime(1);
-    break;
-  case 32: // step 3: show the third stored time
-    displayStoredTime(2);
-    break;
-  case 64: // step 4: show the fourth stored time
-    displayStoredTime(3);
-    break;
-  case 128: // step 5: show the fifth stored time
-    displayStoredTime(4);
-    break;
+  Serial.println(buttons);
+  currentTime = millis();
+  if (currentTime - prevTime > 400) {
+    switch (buttons) {
+    case 1: // Reset
+      mili_counter = 0;
+      reset();
+      break;
+    case 2: // Step : take the current time and store it
+      storeTime();
+      break;
+    case 4: // Start and Stop
+      startStopTimer();
+      break;
+    case 8: // step 1: show the first stored time
+      displayStoredTime(0);
+      break;
+    case 16: // step 2: show the second stored time
+      displayStoredTime(1);
+      break;
+    case 32: // step 3: show the third stored time
+      displayStoredTime(2);
+      break;
+    case 64: // step 4: show the fourth stored time
+      displayStoredTime(3);
+      break;
+    case 128: // step 5: show the fifth stored time
+      displayStoredTime(4);
+      break;
+    }
+  prevTime = currentTime;
   }
 }
 
@@ -133,10 +140,7 @@ void displaySegment(int value) {
   digits[7] = mili % 10;
 
   for (int i = 0; i < 8; i++) {
-    if (digits[i] != prev_digits[i]) {
-      sendData(0x00 | (2 * i), data7Segment[digits[i]]);
-    }
-    prev_digits[i] = digits[i];
+    sendData(0x00 | (2 * i), data7Segment[digits[i]]);
   }
 }
 
@@ -148,7 +152,7 @@ storedTimes[0] = mili_counter;
 }
 
 void displayStoredTime(int index) {
-  startStopTimer();
+  TIMSK1 &= ~B00000010;
   reset();
   if (index >= 0 && index < MAX_STORED_TIME) {
     mili_counter = storedTimes[index];
@@ -172,8 +176,7 @@ void sendData(uint8_t address, uint8_t value) {
 }
 
 uint8_t readButtons(void) {
-  static uint8_t buttons = 0;
-  static uint8_t prev_buttons = 0;
+  uint8_t buttons = 0;
   digitalWrite(strobe, LOW);
   shiftOut(data, clock, LSBFIRST, 0x42);
   pinMode(data, INPUT);
@@ -181,15 +184,9 @@ uint8_t readButtons(void) {
     uint8_t v = shiftIn(data, clock, LSBFIRST) << i;
     buttons |= v;
   }
-  pinMode(data, OUTPUT);
   digitalWrite(strobe, HIGH);
-  if (buttons != prev_buttons && buttons != 0) {
-    prev_buttons = buttons;
-    return buttons;
-  } else {
-    return 0;
-  }
-  prev_buttons = buttons;
+  pinMode(data, OUTPUT);
+  return buttons;
 }
 
 void reset() {
