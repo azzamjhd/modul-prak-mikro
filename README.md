@@ -12,7 +12,9 @@ Kumpulan kode-kode dari tugas pada modul yang telah diberikan dalam format Platf
   - [Jam](/clock#jam)
   - [Stop Watch](/stop-watch#stop-watch)
   - [Timer](/timer#timer)
-  
+- **Mode Timer dan Counter**
+  - [PWM NRP](/PWM-NRP)
+  - [PWM Duty Cycle](/2PWM-Interrupt/)
 ---
 ## Fun Projects
 - [Binary Button Display](/BIN-button#binary-button-display)
