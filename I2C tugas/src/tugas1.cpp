@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <I2C.h>
+#include <Adafruit_NeoPixel.h>
 
 #define DevAddr 0xC0
 
