@@ -18,19 +18,22 @@
 volatile int encoderPos = 0;
 volatile bool buttonPressed = false;
 const int menuItems = 2;
-int menuIndex = 0;
+int menuIndex = 1;
 
+// Variables for the ultrasonic sensor
 float trashCanHeight = 30.0; // Height of the trashcan in cm
 long duration;
 float distanceCm;
 const float sensorOffset = 5.0; // Offset for the sensor mounting
 
+// Variables for the moving average filter
 const int numSamples = 10;  // Number of samples for the moving average
 float distanceSamples[numSamples];
 int sampleIndex = 0;
 float totalDistance = 0;
 float averageDistance = 0;
 
+// OLED display
 U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE, /* clock=*/ OLED_SCL, /* data=*/ OLED_SDA);
 
 // Encoder state table for direction detection
@@ -43,6 +46,11 @@ static const int8_t encoderStateTable[4][4] = {
 
 volatile int encoderState = 0;
 
+/* 
+  Update the encoder position based on the current state of the encoder pins
+  The encoder state table is used to determine the direction of the encoder
+  The encoder position is updated based on the direction
+*/
 void IRAM_ATTR updateEncoder() {
   int pinA = digitalRead(ENCODER_PIN_A);
   int pinB = digitalRead(ENCODER_PIN_B);
@@ -54,10 +62,17 @@ void IRAM_ATTR updateEncoder() {
   }
 }
 
+/* 
+  Update the button state when the button is pressed
+*/
 void IRAM_ATTR updateButton() {
   buttonPressed = true;
 }
 
+/* 
+  Read the distance from the ultrasonic sensor
+  Update the moving average filter
+*/
 void readUltrasonicDistance() {
   digitalWrite(TRIGGER_PIN, LOW);
   delayMicroseconds(2);
@@ -76,9 +91,12 @@ void readUltrasonicDistance() {
   averageDistance = totalDistance / numSamples;
 }
 
+/* 
+  Handle the menu navigation and button press
+*/
 void handleMenu() {
   static int lastEncoderPos = 0;
-  if (encoderPos != lastEncoderPos) {
+  if (abs(encoderPos - lastEncoderPos) >= 2) {
     if (encoderPos > lastEncoderPos) {
       menuIndex = (menuIndex + 1) % menuItems;
     } else {
@@ -98,6 +116,9 @@ void handleMenu() {
   }
 }
 
+/* 
+  Draw the menu on the OLED display
+*/
 void drawMenu() {
   u8g2.clearBuffer();
 
@@ -131,6 +152,9 @@ void drawMenu() {
   u8g2.sendBuffer();
 }
 
+/* 
+  Draw the splash screen on the OLED display
+*/
 void drawSplashScreen() {
   u8g2.clearBuffer();
   u8g2.setFont(u8g2_font_ncenB14_tr);
